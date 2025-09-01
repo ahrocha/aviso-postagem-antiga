@@ -2,8 +2,9 @@
 /**
  * Plugin Name: Aviso de Postagem Antiga
  * Description: Mostra um aviso no início de posts com mais de 1 ano desde a última atualização.
- * Version: 0.2
+ * Version: 0.2.1
  * Author: Andrey Rocha
+ * Update URI: https://updates.andreyrocha.com/aviso-postagem-antiga
  */
 
 if (!defined('ABSPATH')) exit;
