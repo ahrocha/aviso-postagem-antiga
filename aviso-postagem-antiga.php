@@ -16,7 +16,7 @@
  * Update URI: https://updates.andreyrocha.com/aviso-postagem-antiga
  */
 
-if (!defined('ABSPATH')) exit;
+if (!defined('ABSPATH')) { exit; }
 
 function apa_add_notice($content) {
     global $post;
@@ -41,7 +41,6 @@ function apa_add_notice($content) {
 add_filter('the_content', 'apa_add_notice');
 
 // ====== Auto-update (server-hosted JSON) ======
-if (!defined('ABSPATH')) { exit; }
 
 add_filter('pre_set_site_transient_update_plugins', function ($transient) {
     // Evita chamadas fora do fluxo normal
