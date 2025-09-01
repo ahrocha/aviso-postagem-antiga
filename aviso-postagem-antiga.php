@@ -3,7 +3,7 @@
  * Plugin Name: Aviso de Postagem Antiga
  * Plugin URI: https://github.com/ahrocha/aviso-postagem-antiga
  * Description: Mostra um aviso no início de posts que não foram atualizados há mais de um ano.
- * Version: 0.2.2
+ * Version: 0.2.3
  * Author: Andrey Rocha
  * Author URI: https://andreyrocha.com
  * Requires at least: 6.0
@@ -30,8 +30,8 @@ function apa_add_notice($content) {
 
     if ($dias >= 365) {
         $mensagem = '<div style="border:1px solid #e2e8f0; padding:10px; margin:10px 0; background:#fffbe6;">
-            <strong>Atenção:</strong> esta postagem possui mais de um ano desde a última atualização. 
-            Portanto, verifique em outras fontes sobre os locais, valores, telefones e endereços listados aqui.
+            <strong>Atenção:</strong> esta postagem possui mais de um ano desde a última atualização.
+            Portanto, verifique em outras fontes sobre os locais, valores, telefones e endereços listados nesta postagem.
         </div>';
         return $mensagem . $content;
     }
