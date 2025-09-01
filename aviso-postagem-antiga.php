@@ -1,9 +1,18 @@
 <?php
 /**
  * Plugin Name: Aviso de Postagem Antiga
- * Description: Mostra um aviso no início de posts com mais de 1 ano desde a última atualização.
- * Version: 0.2.1
+ * Plugin URI: https://github.com/ahrocha/aviso-postagem-antiga
+ * Description: Mostra um aviso no início de posts que não foram atualizados há mais de um ano.
+ * Version: 0.2.2
  * Author: Andrey Rocha
+ * Author URI: https://andreyrocha.com
+ * Requires at least: 6.0
+ * Tested up to: 6.8
+ * Requires PHP: 7.4
+ * License: GPL-3.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: aviso-postagem-antiga
+ * Domain Path: /languages
  * Update URI: https://updates.andreyrocha.com/aviso-postagem-antiga
  */
 
@@ -30,3 +39,99 @@ function apa_add_notice($content) {
     return $content;
 }
 add_filter('the_content', 'apa_add_notice');
+
+// ====== Auto-update (server-hosted JSON) ======
+if (!defined('ABSPATH')) { exit; }
+
+add_filter('pre_set_site_transient_update_plugins', function ($transient) {
+    // Evita chamadas fora do fluxo normal
+    if (empty($transient) || !is_object($transient)) {
+        $transient = new stdClass();
+    }
+
+    $plugin_file = plugin_basename(__FILE__); // "aviso-postagem-antiga/aviso-postagem-antiga.php"
+    $current_version = get_file_data(__FILE__, ['Version' => 'Version'])['Version'] ?? '0.0.0';
+
+    // Cache leve para não bater no servidor a cada load
+    $cache_key = 'apa_update_info';
+    $update_info = get_transient($cache_key);
+
+    if (!$update_info) {
+        $resp = wp_remote_get(
+            'https://andreyrocha.com/plugins/aviso-postagem-antiga/update.json',
+            ['timeout' => 8, 'sslverify' => true]
+        );
+        if (!is_wp_error($resp) && wp_remote_retrieve_response_code($resp) === 200) {
+            $body = wp_remote_retrieve_body($resp);
+            $update_info = json_decode($body);
+            // Cache por 6 horas
+            set_transient($cache_key, $update_info, 6 * HOUR_IN_SECONDS);
+        }
+    }
+
+    if ($update_info && is_object($update_info)) {
+        $remote_version = $update_info->version ?? null;
+        if ($remote_version && version_compare($remote_version, $current_version, '>')) {
+            $obj = new stdClass();
+            $obj->slug = $update_info->slug ?? 'aviso-postagem-antiga';
+            $obj->plugin = $plugin_file;
+            $obj->new_version = $remote_version;
+            $obj->url = $update_info->homepage ?? '';
+            $obj->package = $update_info->download_url ?? ''; // URL do ZIP
+            $obj->tested = $update_info->tested ?? '';
+            $obj->requires = $update_info->requires ?? '';
+            $transient->response[$plugin_file] = $obj;
+        } else {
+            // Sem update
+            unset($transient->response[$plugin_file]);
+            $transient->no_update[$plugin_file] = (object)[
+                'slug'        => $update_info->slug ?? 'aviso-postagem-antiga',
+                'plugin'      => $plugin_file,
+                'new_version' => $remote_version ?: $current_version,
+                'url'         => $update_info->homepage ?? '',
+                'package'     => ''
+            ];
+        }
+    }
+
+    return $transient;
+});
+
+/**
+ * Fornece detalhes da “View details” modal do plugin (Plugins → View details)
+ */
+add_filter('plugins_api', function ($result, $action, $args) {
+    if ($action !== 'plugin_information') { return $result; }
+    if (empty($args->slug) || $args->slug !== 'aviso-postagem-antiga') { return $result; }
+
+    $cache_key = 'apa_update_info';
+    $update_info = get_transient($cache_key);
+
+    if (!$update_info) {
+        $resp = wp_remote_get(
+            'https://andreyrocha.com/plugins/aviso-postagem-antiga/update.json',
+            ['timeout' => 8, 'sslverify' => true]
+        );
+        if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
+            return $result;
+        }
+        $update_info = json_decode(wp_remote_retrieve_body($resp));
+        set_transient($cache_key, $update_info, 6 * HOUR_IN_SECONDS);
+    }
+
+    if (!$update_info) { return $result; }
+
+    $info = new stdClass();
+    $info->name = 'Aviso de Postagem Antiga';
+    $info->slug = 'aviso-postagem-antiga';
+    $info->version = $update_info->version ?? '';
+    $info->author = '<a href="https://andreyrocha.com">Andrey Rocha</a>';
+    $info->homepage = $update_info->homepage ?? '';
+    $info->download_link = $update_info->download_url ?? '';
+    $info->requires = $update_info->requires ?? '6.0';
+    $info->tested = $update_info->tested ?? '6.8';
+    $info->requires_php = $update_info->requires_php ?? '7.4';
+    $info->last_updated = $update_info->last_updated ?? '';
+    $info->sections = (array)($update_info->sections ?? ['description' => '']);
+    return $info;
+}, 10, 3);
