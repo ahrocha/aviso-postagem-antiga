@@ -31,7 +31,7 @@ function apa_add_notice($content) {
     if ($dias >= 365) {
         $mensagem = '<div style="border:1px solid #e2e8f0; padding:10px; margin:10px 0; background:#fffbe6;">
             <strong>Atenção:</strong> esta postagem possui mais de um ano desde a última atualização.
-            Portanto, verifique em outras fontes sobre os locais, valores, telefones e endereços listados nesta postagem.
+            Verifique em outras fontes sobre os locais, valores, telefones e endereços listados nesta postagem.
         </div>';
         return $mensagem . $content;
     }
