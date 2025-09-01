@@ -3,7 +3,7 @@
  * Plugin Name: Aviso de Postagem Antiga
  * Plugin URI: https://github.com/ahrocha/aviso-postagem-antiga
  * Description: Mostra um aviso no início de posts que não foram atualizados há mais de um ano.
- * Version: 0.2.6
+ * Version: 0.2.7
  * Author: Andrey Rocha
  * Author URI: https://andreyrocha.com
  * Requires at least: 6.0
@@ -17,6 +17,9 @@
  */
 
 if (!defined('ABSPATH')) { exit; }
+
+define('AVISO_POSTAGEM_ANTIGA_UPDATE_SERVER', 'https://updates.andreyrocha.com');
+define('AVISO_POSTAGEM_ANTIGA_UPDATE_JSON', AVISO_POSTAGEM_ANTIGA_UPDATE_SERVER . '/aviso-postagem-antiga/update.json');
 
 function apa_add_notice($content) {
     global $post;
@@ -57,7 +60,7 @@ add_filter('pre_set_site_transient_update_plugins', function ($transient) {
 
     if (!$update_info) {
         $resp = wp_remote_get(
-            'https://updates.andreyrocha.com/aviso-postagem-antiga/update.json',
+            AVISO_POSTAGEM_ANTIGA_UPDATE_JSON,
             ['timeout' => 8, 'sslverify' => true]
         );
         if (!is_wp_error($resp) && wp_remote_retrieve_response_code($resp) === 200) {
@@ -108,7 +111,7 @@ add_filter('plugins_api', function ($result, $action, $args) {
 
     if (!$update_info) {
         $resp = wp_remote_get(
-            'https://updates.andreyrocha.com/aviso-postagem-antiga/update.json',
+            AVISO_POSTAGEM_ANTIGA_UPDATE_JSON,
             ['timeout' => 8, 'sslverify' => true]
         );
         if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
