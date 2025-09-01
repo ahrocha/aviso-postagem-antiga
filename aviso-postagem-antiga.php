@@ -57,7 +57,7 @@ add_filter('pre_set_site_transient_update_plugins', function ($transient) {
 
     if (!$update_info) {
         $resp = wp_remote_get(
-            'https://andreyrocha.com/plugins/aviso-postagem-antiga/update.json',
+            'https://updates.andreyrocha.com/aviso-postagem-antiga/update.json',
             ['timeout' => 8, 'sslverify' => true]
         );
         if (!is_wp_error($resp) && wp_remote_retrieve_response_code($resp) === 200) {
@@ -108,7 +108,7 @@ add_filter('plugins_api', function ($result, $action, $args) {
 
     if (!$update_info) {
         $resp = wp_remote_get(
-            'https://andreyrocha.com/plugins/aviso-postagem-antiga/update.json',
+            'https://updates.andreyrocha.com/aviso-postagem-antiga/update.json',
             ['timeout' => 8, 'sslverify' => true]
         );
         if (is_wp_error($resp) || wp_remote_retrieve_response_code($resp) !== 200) {
