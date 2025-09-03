@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) { exit; }
 define('AVISO_POSTAGEM_ANTIGA_UPDATE_SERVER', 'https://updates.andreyrocha.com');
 define('AVISO_POSTAGEM_ANTIGA_UPDATE_JSON', AVISO_POSTAGEM_ANTIGA_UPDATE_SERVER . '/aviso-postagem-antiga/update.json');
 
-function apa_add_notice($content) {
+function aviso_postagem_antiga_add_notice($content) {
     global $post;
     if (!is_singular('post') || !$post) {
         return $content;
@@ -41,7 +41,7 @@ function apa_add_notice($content) {
 
     return $content;
 }
-add_filter('the_content', 'apa_add_notice');
+add_filter('the_content', 'aviso_postagem_antiga_add_notice');
 
 // ====== Auto-update (server-hosted JSON) ======
 
@@ -55,7 +55,7 @@ add_filter('pre_set_site_transient_update_plugins', function ($transient) {
     $current_version = get_file_data(__FILE__, ['Version' => 'Version'])['Version'] ?? '0.0.0';
 
     // Cache leve para não bater no servidor a cada load
-    $cache_key = 'apa_update_info';
+    $cache_key = 'aviso_postagem_antiga_update_info';
     $update_info = get_transient($cache_key);
 
     if (!$update_info) {
@@ -106,7 +106,7 @@ add_filter('plugins_api', function ($result, $action, $args) {
     if ($action !== 'plugin_information') { return $result; }
     if (empty($args->slug) || $args->slug !== 'aviso-postagem-antiga') { return $result; }
 
-    $cache_key = 'apa_update_info';
+    $cache_key = 'aviso_postagem_antiga_update_info';
     $update_info = get_transient($cache_key);
 
     if (!$update_info) {
@@ -137,3 +137,88 @@ add_filter('plugins_api', function ($result, $action, $args) {
     $info->sections = (array)($update_info->sections ?? ['description' => '']);
     return $info;
 }, 10, 3);
+
+// 1) Define o valor padrão na ativação (melhor que fazer no 'init')
+register_activation_hook(__FILE__, function () {
+    add_option('aviso_postagem_antiga_days_before_warning', 365);
+});
+
+// 2) Adiciona a página em Configurações
+add_action('admin_menu', function () {
+    add_options_page(
+        __('Aviso de Postagem Antiga', 'aviso-postagem-antiga'),
+        __('Aviso de Postagem Antiga', 'aviso-postagem-antiga'),
+        'manage_options',
+        'aviso-postagem-antiga-settings',
+        'aviso_postagem_antiga_render_settings_page'
+    );
+});
+
+// 3) Registra a opção + campo usando a Settings API
+add_action('admin_init', function () {
+    // registra a opção com sanitização e default
+    register_setting('aviso_postagem_antiga_settings_group', 'aviso_postagem_antiga_days_before_warning', [
+        'type'              => 'integer',
+        'sanitize_callback' => 'absint',
+        'default'           => 365,
+        'show_in_rest'      => false,
+    ]);
+
+    // seção (opcional, aqui só para agrupar)
+    add_settings_section(
+        'aviso_postagem_antiga_main_section',
+        __('Configurações', 'aviso-postagem-antiga'),
+        '__return_false',
+        'aviso-postagem-antiga-settings'
+    );
+
+    // campo
+    add_settings_field(
+        'aviso_postagem_antiga_days_before_warning',
+        __('Dias para exibir o aviso', 'aviso-postagem-antiga'),
+        'aviso_postagem_antiga_render_days_field',
+        'aviso_postagem_antiga_settings',
+        'aviso_postagem_antiga_main_section'
+    );
+});
+
+// 4) Callback do campo
+function aviso_postagem_antiga_render_days_field() {
+    $value = get_option('aviso_postagem_antiga_days_before_warning', 365);
+    ?>
+    <input
+        type="number"
+        name="aviso_postagem_antiga_days_before_warning"
+        id="aviso_postagem_antiga_days_before_warning"
+        value="<?php echo esc_attr($value); ?>"
+        min="1"
+        step="1"
+        class="small-text"
+    />
+    <p class="description">
+        <?php esc_html_e('Número de dias desde a última atualização do post para começar a mostrar o aviso.', 'aviso_postagem_antiga'); ?>
+    </p>
+    <?php
+}
+
+// 5) Render da página
+function aviso_postagem_antiga_render_settings_page() { ?>
+    <div class="wrap">
+        <h1><?php esc_html_e('Aviso de Postagem Antiga', 'aviso-postagem-antiga'); ?></h1>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields('aviso_postagem_antiga_settings_group');   // nonce + option group
+            do_settings_sections('aviso_postagem_antiga_settings');    // seção + campos
+            submit_button();
+            ?>
+        </form>
+    </div>
+<?php }
+
+// (Opcional) Link "Configurações" na lista de plugins
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links) {
+    $url = admin_url('options-general.php?page=aviso_postagem_antiga_settings');
+    $links[] = '<a href="' . esc_url($url) . '">' . esc_html__('Configurações', 'aviso_postagem_antiga') . '</a>';
+    return $links;
+});
+
