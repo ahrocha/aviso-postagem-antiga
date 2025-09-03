@@ -31,9 +31,11 @@ function aviso_postagem_antiga_add_notice($content) {
     $timestamp = get_post_modified_time('U', true, $post);
     $dias = floor( (time() - $timestamp) / DAY_IN_SECONDS );
 
-    if ($dias >= 365) {
+    $limite = (int) get_option('aviso_postagem_antiga_days_before_warning', 365);
+
+    if ($dias >= $limite) {
         $mensagem = '<div style="border:1px solid #e2e8f0; padding:10px; margin:10px 0; background:#fffbe6;">
-            <strong>Atenção:</strong> esta postagem possui mais de um ano desde a última atualização.
+            <strong>Atenção:</strong> esta postagem possui mais de ' . $limite . ' dias ('.$dias.') desde a última atualização.
             Verifique em outras fontes sobre os locais, valores, telefones e endereços listados nesta postagem.
         </div>';
         return $mensagem . $content;
@@ -164,21 +166,13 @@ add_action('admin_init', function () {
         'show_in_rest'      => false,
     ]);
 
-    // seção (opcional, aqui só para agrupar)
-    add_settings_section(
-        'aviso_postagem_antiga_main_section',
-        __('Configurações', 'aviso-postagem-antiga'),
-        '__return_false',
-        'aviso-postagem-antiga-settings'
-    );
-
     // campo
     add_settings_field(
         'aviso_postagem_antiga_days_before_warning',
         __('Dias para exibir o aviso', 'aviso-postagem-antiga'),
         'aviso_postagem_antiga_render_days_field',
-        'aviso_postagem_antiga_settings',
-        'aviso_postagem_antiga_main_section'
+        'aviso-postagem-antiga-settings',
+        'default'
     );
 });
 
@@ -196,7 +190,10 @@ function aviso_postagem_antiga_render_days_field() {
         class="small-text"
     />
     <p class="description">
-        <?php esc_html_e('Número de dias desde a última atualização do post para começar a mostrar o aviso.', 'aviso_postagem_antiga'); ?>
+        <?php esc_html_e(
+            'Número de dias desde a última atualização do post para começar a mostrar o aviso.',
+            'aviso-postagem-antiga');
+        ?>
     </p>
     <?php
 }
@@ -208,7 +205,9 @@ function aviso_postagem_antiga_render_settings_page() { ?>
         <form method="post" action="options.php">
             <?php
             settings_fields('aviso_postagem_antiga_settings_group');   // nonce + option group
-            do_settings_sections('aviso_postagem_antiga_settings');    // seção + campos
+            echo '<table class="form-table" role="presentation">';
+            do_settings_fields('aviso-postagem-antiga-settings', 'default');    // seção + campos
+            echo '</table>';
             submit_button();
             ?>
         </form>
@@ -217,8 +216,8 @@ function aviso_postagem_antiga_render_settings_page() { ?>
 
 // (Opcional) Link "Configurações" na lista de plugins
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links) {
-    $url = admin_url('options-general.php?page=aviso_postagem_antiga_settings');
-    $links[] = '<a href="' . esc_url($url) . '">' . esc_html__('Configurações', 'aviso_postagem_antiga') . '</a>';
+    $url = admin_url('options-general.php?page=aviso-postagem-antiga-settings');
+    $links[] = '<a href="' . esc_url($url) . '">' . esc_html__('Configurações', 'aviso-postagem-antiga') . '</a>';
     return $links;
 });
 
